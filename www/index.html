@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <!--meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width"-->
+		<meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" >
+		<link rel="stylesheet" href="leaflet/leaflet.css" />
+	   <link rel="stylesheet" href="leaflet/leaflet-locatecontrol-gh-pages/dist/L.Control.Locate.min.css"/>
+	   <link rel="stylesheet" href="leaflet/Leaflet.loading-master/src/Control.Loading.css" />
+        <title>Seed Zones WA v1.0</title>
+		<style>
+      html { height: 90% }
+      body { height: 95%; margin: 10; padding: 15;}
+      #map{ height: 100% }
+    </style>
+    </head>
+    <body style="background-color:Silver;">
+		<h2><img src="img/Shield_60.jpg" alt="USDA_FS" style="width:71px;height:29px;" align="left">   
+		&nbsp; &nbsp; Provisional Seed Zones WA  1.0 </h2>
+		<div id="element1" style="display:inline"> Connection status:&nbsp </div> 
+		<div id="statusHTML" style ="display:inline">None</div>
+        <script type="text/javascript" src="cordova.js"></script>
+		<script type="text/javascript" src="leaflet/leaflet.js"></script>
+		<script type="text/javascript" src="js/map_functions.js"></script>
+		<script type="text/javascript" src="js/jquery-2.0.3.min.js"></script>
+		<script type="text/javascript" src="js/core.js"></script>
+		<script type="text/javascript" src="leaflet/esri/esri-leaflet.js"></script>
+		<script type="text/javascript" src="leaflet/leaflet-button-control.js"></script>
+		<script type="text/javascript" src="leaflet/leaflet.ajax.min.js"></script>
+		<script type="text/javascript" src="leaflet/spin/dist/spin.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="leaflet.spin.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="leaflet/Leaflet.loading-master/src/Control.Loading.js"></script>
+		<div id="map"></div>
+		
+		<script type="text/javascript">
+		
+		//GLOBALS SO THEY ARE ACCESSIBLE BY THE FUNCTIONS JS
+		var map = L.map('map', { zoomControl:false}).setView([47.2, -121], 8);
+		var OSM;
+		var imagery;
+		var status;
+		var status2 = "";
+		
+		
+		document.addEventListener('deviceready', initializeMap, false);
+		document.addEventListener("offline", function(){
+			status = checkConnection();
+			status2 = "offLine";
+			document.getElementById("statusHTML").innerHTML=status;
+			//alert("Connection status offLine: "+status);
+			OSM = L.tileLayer('img/WA_13/{z}/{x}/{y}.png',{    maxZoom: 13  });
+			refreshOSM();
+		}, false);
+		document.addEventListener("online", function(){
+			status = checkConnection();
+			status2 = "onLine";
+			document.getElementById("statusHTML").innerHTML=status;
+			//alert("Connection status onLine: "+status);
+			OSM = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+			imagery = new L.esri.basemapLayer('Imagery');
+			refreshOSM();
+		}, false);
+		
+		
+		function refreshOSM() { 
+			if (map.hasLayer(imagery)){
+				map.removeLayer(imagery);
+				}
+			if (map.hasLayer(OSM)){
+					map.removeLayer(OSM);
+					map.addLayer(OSM);
+					}
+			else{map.addLayer(OSM)};		
+			}	
+			
+		function initializeMap() {
+		
+			//CREATE THE SEED ZONE GEOJSON LAYER 
+			var myStyle = {
+				"color": "#00ccff",
+				"weight": 1,
+				"opacity": 1,
+				"fill": true,
+			};
+			var prov = new L.GeoJSON.AJAX(["img/geojson/2013_SZs_WA.geojson"],{onEachFeature:popUp,local:true,style:myStyle, }).addTo(map);
+		
+			
+			
+			//ADD THE OSM BASEMAP 
+            //map.addLayer(OSM);
+			//map.addLayer(provGJ);
+			
+			
+			// ADD THE LOADING CONTROL	
+			var loadingControl = L.Control.loading({
+                    position: 'topleft',
+                });
+                map.addControl(loadingControl);	
+				
+			//SCALE 
+			var scaleControl = L.control.scale({
+				position:'bottomleft',
+				maxwidth:500,
+				metric:false,
+				imperial:true,
+				updateWhenIdle:false
+				});
+			map.addControl(scaleControl);	
+			
+			//LOCATE BUTTON	
+			var myButtonOptions = {
+				'text': '',  // string
+				'iconUrl': 'leaflet/locate.png',  // string
+				'onClick': my_button_onClick,  // callback function
+				'hideText': true,  // bool
+				'maxWidth': 1,  // number
+				'doToggle': false,  // bool
+				'toggleStatus': false  // bool
+			};   
+			var myButton = new L.Control.Button(myButtonOptions).addTo(map);	
+
+			//BACKGROUND MAPS BUTTON		
+			var myButtonOptions = {
+				'text': '',  // string
+				'iconUrl': 'leaflet/Globe_BW.png',  // string
+				'onClick': BM_onClick,  // callback function
+				'hideText': true,  // bool
+				'maxWidth': 1,  // number
+				'doToggle': false,  // bool
+				'toggleStatus': false  // bool
+			};  
+			var myIMButton = new L.Control.Button(myButtonOptions).addTo(map);	
+			
+			//CREATE THE MARKER FOR THE LOCATION
+			var marker;
+			
+			//LOGIC IF LOCATION CAN/CANNOT BE DETERMINED
+			map.on('locationfound', onLocationFound);
+			map.on('locationerror', onLocationError);	
+
+			map.locate({setView: true, maxZoom: 13, timeout:1000000, enableHighAccuracy:true, maximumAge: 0});
+			}
+		
+		</script>
+    </body>
+</html>
+
